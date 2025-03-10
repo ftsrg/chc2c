@@ -11,6 +11,10 @@ class BaseCHC2C:
         """
         if z3.is_int_value(expr):
             return str(expr.as_long())
+        elif z3.is_true(expr):
+            return "1"
+        elif z3.is_false(expr):
+            return "0"
         elif z3.is_var(expr):  # Bound variable (e.g., Var(0), Var(1), etc.)
             idx = z3.get_var_index(expr)
             if idx < len(bound_vars):
@@ -44,8 +48,17 @@ class BaseCHC2C:
         elif z3.is_mod(expr):
             # TODO: exact mod behavior
             return '(' + self.expr_to_c(expr.arg(0), bound_vars) + ' % ' + self.expr_to_c(expr.arg(1), bound_vars) + ')'
-        else:
-            return None
+        elif z3.is_app(expr) and expr.decl().kind() == z3.Z3_OP_UNINTERPRETED:
+            return None # the subclass should handle this
+        elif z3.is_app(expr):
+            kind = expr.decl().kind()
+            if kind == z3.Z3_OP_UMINUS:
+                return '(-' + self.expr_to_c(expr.arg(0), bound_vars) + ')'
+            elif kind == z3.Z3_OP_ITE:
+                return '(' + self.expr_to_c(expr.arg(0), bound_vars) + ' ? ' + self.expr_to_c(expr.arg(1), bound_vars)  + ' : ' + self.expr_to_c(expr.arg(2), bound_vars) + ')'
+            elif kind == z3.Z3_OP_IDIV:
+                return '(' + ' / '.join(self.expr_to_c(arg, bound_vars) for arg in expr.children()) + ')'
+            raise NotImplementedError(f"Operator not implemented: {expr.decl()}")
 
     def smt_sort_to_c(self, sort):
         lookup = {

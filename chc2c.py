@@ -1,6 +1,7 @@
+#!/usr/bin/python3
 import argparse
 
-from LinearCHC2C import LinearCHC2C
+from LinearCHC2C import LinearCHC2C, RecursiveException
 from NonLinearCHC2C import NonLinearCHC2C
 
 
@@ -17,12 +18,17 @@ def main():
 
     args = parser.parse_args()
     with open(args.filename, 'r') as f_in:
-        if args.recursive:
+        if not args.recursive:
+            try:
+                program = LinearCHC2C().chc_to_c_program(f_in.read(), args.out)
+            except RecursiveException:
+                program = None
+                print("Retrying with recursive mapping...")
+        if not program:
             program = NonLinearCHC2C().chc_to_c_program(f_in.read(), args.out)
-        else:
-            program = LinearCHC2C().chc_to_c_program(f_in.read(), args.out)
         with open(args.out, 'w') as f_out:
             f_out.write(program)
+            print("success")
 
 
 if __name__=="__main__":

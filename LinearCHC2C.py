@@ -29,13 +29,12 @@ class LinearCHC2C(BaseCHC2C):
             visited = []
             while len(todo) > 0:
                 next = todo.pop()
-                print(next)
                 visited.append(next)
-                for called in self.callgraph[next]:
-                    if called in visited:
-                        print("\n".join([f"{a} -> {b.pop()};" for (a, b) in self.callgraph.items()]))
-                        raise RecursiveException()
-                    todo.append(called)
+                if next in self.callgraph:
+                    for called in self.callgraph[next]:
+                        if called in visited:
+                            raise RecursiveException()
+                        todo.append(called)
 
     def expr_to_c(self, expr, bound_vars):
         simple_expr = super().expr_to_c(expr, bound_vars)
