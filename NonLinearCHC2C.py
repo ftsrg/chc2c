@@ -18,7 +18,7 @@ class NonLinearCHC2C(BaseCHC2C):
             return simple_expr
         elif z3.is_app(expr):
             func = expr.decl()
-            ret = func.name() + "("
+            ret = self.sanitize_identifier(func.name()) + "("
             ret += ", ".join([self.expr_to_c(expr.arg(i), bound_vars) for i in range(expr.num_args())])
             ret += ")"
             return ret
@@ -47,7 +47,7 @@ class NonLinearCHC2C(BaseCHC2C):
                             function_declarations.append("_Bool __chc_false();")
                         elif z3.is_app(conclusion):
                             func = conclusion.decl()
-                            function_declarations.append(f"_Bool {func}({", ".join([self.smt_sort_to_c(conclusion.arg(i).sort()) for i in range(conclusion.num_args())])});")
+                            function_declarations.append(f"_Bool {self.sanitize_identifier(str(func))}({", ".join([self.smt_sort_to_c(conclusion.arg(i).sort()) for i in range(conclusion.num_args())])});")
                     UFs[func_name][1].append((rule, bound_vars))
 
         functions = [self.create_function(conclusion, bodies) for head, (conclusion, bodies) in UFs.items()]
@@ -72,7 +72,7 @@ class NonLinearCHC2C(BaseCHC2C):
 
 
     def create_function(self, head, bodies):
-        func_name = "__chc_false" if z3.is_false(head) else head.decl().name()
+        func_name = "__chc_false" if z3.is_false(head) else self.sanitize_identifier(head.decl().name())
         func_body = ""
         # Add the CHC rule as a comment
         func_body += f"/*\n{"\n".join([str(b[0]) for b in bodies])}\n*/\n"
@@ -87,11 +87,12 @@ class NonLinearCHC2C(BaseCHC2C):
             body_bound_vars = [bound_vars[i] for i in range(len(bound_vars)) if i not in [z3.get_var_index(v) for v in rule.body().arg(1).children()]]
             body = rule.body().arg(0)
             # Declare the parameters as unbound variables
-            func_body += "    " + "\n    ".join(map(lambda v: f"{self.smt_sort_to_c(v[1])} {v[0]};", body_bound_vars)) + "\n"
+            func_body += "    " + "\n    ".join(map(lambda v: f"{self.smt_sort_to_c(v[1])} {v[0]} = __VERIFIER_nondet_{self.smt_sort_to_c(v[1])}();", body_bound_vars)) + "\n"
             # Convert the left-hand side of the implication to C (condition)
             condition_str = self.expr_to_c(body, modified_bound_vars)
             func_body += f"    if ({condition_str}) {{ return 1; }}\n"
             func_body += "  }\n"
 
+        func_body += "  return 0;\n"
         func_body += "}\n\n"
         return func_body

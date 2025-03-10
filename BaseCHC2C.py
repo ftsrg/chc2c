@@ -1,4 +1,5 @@
 import z3
+import re
 
 # As long as the CHC is nonrecursive, this can be used
 class BaseCHC2C:
@@ -18,7 +19,7 @@ class BaseCHC2C:
         elif z3.is_var(expr):  # Bound variable (e.g., Var(0), Var(1), etc.)
             idx = z3.get_var_index(expr)
             if idx < len(bound_vars):
-                return bound_vars[idx][0]
+                return self.sanitize_identifier(bound_vars[idx][0])
             else:
                 raise ValueError(f"Variable index {idx} out of bounds for bound variables {bound_vars}")
         elif z3.is_add(expr):
@@ -68,3 +69,10 @@ class BaseCHC2C:
         if sort.kind() not in lookup:
             raise NotImplementedError(f"Sort {sort} not supported.")
         return lookup[sort.kind()]
+
+    def sanitize_identifier(self, identifier):
+        # Ensure the first character is a letter or underscore.
+        identifier = re.sub(r'^[^A-Za-z_]', '_', identifier)
+        # Replace any character that is not a letter, digit, or underscore.
+        identifier = re.sub(r'[^A-Za-z0-9_]', '_', identifier)
+        return identifier

@@ -55,7 +55,7 @@ class LinearCHC2C(BaseCHC2C):
         func = expr.decl()
         if func not in self.var_lookup:
             if expr.num_args() > 0:
-                self.var_lookup[func] = [(f"{func}_{i}", expr.arg(i).sort()) for i in range(expr.num_args())]
+                self.var_lookup[func] = [(f"{self.sanitize_identifier(str(func))}_{i}", expr.arg(i).sort()) for i in range(expr.num_args())]
             else:
                 self.var_lookup[func] = [(func, z3.BoolSort())]
 
