@@ -35,7 +35,7 @@ class NonLinearCHC2C(BaseCHC2C):
             # Check if this is a forall with an implication
             if z3.is_quantifier(rule) and rule.is_forall():
                 # Extract variables and body
-                bound_vars = [(rule.var_name(i), rule.var_sort(i)) for i in range(rule.num_vars())]
+                bound_vars = [(rule.var_name(rule.num_vars() - i - 1), rule.var_sort(rule.num_vars() - i - 1)) for i in range(rule.num_vars())]
                 body = rule.body()
 
                 if z3.is_implies(body):
@@ -87,7 +87,7 @@ class NonLinearCHC2C(BaseCHC2C):
             body_bound_vars = [bound_vars[i] for i in range(len(bound_vars)) if i not in [z3.get_var_index(v) for v in rule.body().arg(1).children()]]
             body = rule.body().arg(0)
             # Declare the parameters as unbound variables
-            func_body += "    " + "\n    ".join(map(lambda v: f"{self.smt_sort_to_c(v[1])} {v[0]} = __VERIFIER_nondet_{self.smt_sort_to_c(v[1])}();", body_bound_vars)) + "\n"
+            func_body += "    " + "\n    ".join(map(lambda v: f"{self.smt_sort_to_c(v[1])} {v[0]} = __VERIFIER_nondet_{self.smt_sort_to_c(v[1])}();", [x for x in body_bound_vars if x[0] != "CHC_COMP_UNUSED"])) + "\n"
             # Convert the left-hand side of the implication to C (condition)
             condition_str = self.expr_to_c(body, modified_bound_vars)
             func_body += f"    if ({condition_str}) {{ return 1; }}\n"

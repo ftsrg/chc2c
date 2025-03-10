@@ -18,17 +18,17 @@ def main():
 
     args = parser.parse_args()
     with open(args.filename, 'r') as f_in:
+        text = f_in.read()
         program = None
         if not args.recursive:
             try:
-                program = LinearCHC2C().chc_to_c_program(f_in.read(), args.out)
+                program = LinearCHC2C().chc_to_c_program(text, args.out)
             except RecursiveException:
                 print("Retrying with recursive mapping...")
         if not program:
-            program = NonLinearCHC2C().chc_to_c_program(f_in.read(), args.out)
+            program = NonLinearCHC2C().chc_to_c_program(text, args.out)
         with open(args.out, 'w') as f_out:
             f_out.write(program)
-            print("success")
 
 
 if __name__=="__main__":

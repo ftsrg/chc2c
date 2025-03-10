@@ -47,7 +47,7 @@ class LinearCHC2C(BaseCHC2C):
             if expr.num_args() > 0:
                 return '(' + ' && '.join(f"{self.var_lookup[func][i][0]} == {self.expr_to_c(expr.arg(i), bound_vars)}" for i in range(expr.num_args())) + ')'
             else:
-                return self.var_lookup[func][0][0].name()
+                return self.var_lookup[func][0][0]
         else:
             raise NotImplementedError(f"Expression {expr} not supported.")
 
@@ -57,7 +57,7 @@ class LinearCHC2C(BaseCHC2C):
             if expr.num_args() > 0:
                 self.var_lookup[func] = [(f"{self.sanitize_identifier(str(func))}_{i}", expr.arg(i).sort()) for i in range(expr.num_args())]
             else:
-                self.var_lookup[func] = [(func, z3.BoolSort())]
+                self.var_lookup[func] = [(self.sanitize_identifier(str(func)), z3.BoolSort())]
 
     def chc_to_c_program(self, smtlib_file_content, filename):
         # Parse the CHCs using Z3
@@ -70,7 +70,7 @@ class LinearCHC2C(BaseCHC2C):
             # Check if this is a forall with an implication
             if z3.is_quantifier(rule) and rule.is_forall():
                 # Extract variables and body
-                bound_vars = [(rule.var_name(i), rule.var_sort(i)) for i in range(rule.num_vars())]
+                bound_vars = [(rule.var_name(rule.num_vars() - i - 1), rule.var_sort(rule.num_vars() - i - 1)) for i in range(rule.num_vars())]
                 body = rule.body()
 
                 if z3.is_implies(body):
@@ -119,7 +119,7 @@ class LinearCHC2C(BaseCHC2C):
         # Generate function body
         func_body += f"void {func_name}() {{\n"
         # Declare the parameters as unbound variables
-        func_body += "  " + "\n  ".join(map(lambda v: f"{self.smt_sort_to_c(v[1])} {v[0]} = __VERIFIER_nondet_{self.smt_sort_to_c(v[1])}();", bound_vars)) + "\n"
+        func_body += "  " + "\n  ".join(map(lambda v: f"{self.smt_sort_to_c(v[1])} {v[0]} = __VERIFIER_nondet_{self.smt_sort_to_c(v[1])}();", [x for x in bound_vars if x[0] != "CHC_COMP_UNUSED"])) + "\n"
         # Convert the left-hand side of the implication to C (condition)
         condition_str = self.expr_to_c(condition, bound_vars)
         func_body += f"  if ({condition_str}) {{\n"
