@@ -67,7 +67,7 @@ For more information on the CHC format, visit [CHC Competition Documentation](ht
 ```bibtex
 @inproceedings{chc2c,
     author = {Bajczi, Levente and Moln\'{a}r, Vince},
-    title = {Solving Constrained Horn Clauses as&nbsp;C Programs with&nbsp;CHC2C},
+    title = {{Solving Constrained Horn Clauses as C Programs with CHC2C}},
     year = {2024},
     isbn = {978-3-031-66148-8},
     publisher = {Springer-Verlag},
