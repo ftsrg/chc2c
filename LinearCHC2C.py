@@ -1,3 +1,31 @@
+#  Copyright ${current_year} Budapest University of Technology and Economics
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+
 import z3
 import textwrap
 
@@ -6,6 +34,7 @@ from BaseCHC2C import BaseCHC2C
 
 class RecursiveException(Exception):
     pass
+
 
 # As long as the CHC is nonrecursive or linear, this can be used
 class LinearCHC2C(BaseCHC2C):
@@ -17,7 +46,11 @@ class LinearCHC2C(BaseCHC2C):
         self.current_rule = None
 
     def propagate_callgraph(self, func):
-        name = self.current_rule.name() if not isinstance(self.current_rule, str) else self.current_rule
+        name = (
+            self.current_rule.name()
+            if not isinstance(self.current_rule, str)
+            else self.current_rule
+        )
         if name not in self.callgraph:
             self.callgraph[name] = set()
         self.callgraph[name].add(func.name())
@@ -45,7 +78,14 @@ class LinearCHC2C(BaseCHC2C):
             self.propagate_callgraph(func)
             self.create_uf_vars(expr)
             if expr.num_args() > 0:
-                return '(' + ' && '.join(f"{self.var_lookup[func][i][0]} == {self.expr_to_c(expr.arg(i), bound_vars)}" for i in range(expr.num_args())) + ')'
+                return (
+                    "("
+                    + " && ".join(
+                        f"{self.var_lookup[func][i][0]} == {self.expr_to_c(expr.arg(i), bound_vars)}"
+                        for i in range(expr.num_args())
+                    )
+                    + ")"
+                )
             else:
                 return self.var_lookup[func][0][0]
         else:
@@ -55,9 +95,14 @@ class LinearCHC2C(BaseCHC2C):
         func = expr.decl()
         if func not in self.var_lookup:
             if expr.num_args() > 0:
-                self.var_lookup[func] = [(f"{self.sanitize_identifier(str(func))}_{i}", expr.arg(i).sort()) for i in range(expr.num_args())]
+                self.var_lookup[func] = [
+                    (f"{self.sanitize_identifier(str(func))}_{i}", expr.arg(i).sort())
+                    for i in range(expr.num_args())
+                ]
             else:
-                self.var_lookup[func] = [(self.sanitize_identifier(str(func)), z3.BoolSort())]
+                self.var_lookup[func] = [
+                    (self.sanitize_identifier(str(func)), z3.BoolSort())
+                ]
 
     def chc_to_c_program(self, smtlib_file_content, filename):
         # Parse the CHCs using Z3
@@ -70,7 +115,13 @@ class LinearCHC2C(BaseCHC2C):
             # Check if this is a forall with an implication
             if z3.is_quantifier(rule) and rule.is_forall():
                 # Extract variables and body
-                bound_vars = [(rule.var_name(rule.num_vars() - i - 1), rule.var_sort(rule.num_vars() - i - 1)) for i in range(rule.num_vars())]
+                bound_vars = [
+                    (
+                        rule.var_name(rule.num_vars() - i - 1),
+                        rule.var_sort(rule.num_vars() - i - 1),
+                    )
+                    for i in range(rule.num_vars())
+                ]
                 body = rule.body()
 
                 if z3.is_implies(body):
@@ -85,26 +136,40 @@ class LinearCHC2C(BaseCHC2C):
 
         self.check_nonrecursive()
 
-        c_program = textwrap.dedent(f"""
+        c_program = textwrap.dedent(
+            f"""
         extern int __VERIFIER_nondet_int();
         extern _Bool __VERIFIER_nondet__Bool();
         extern void abort(void);
         extern void __assert_fail(const char *, const char *, unsigned int, const char *);
         void reach_error() {{ __assert_fail("0", "{filename}", 0, "reach_error"); }}
-        """)
+        """
+        )
         c_program += "// function declarations\n"
-        c_program += "\n".join([f"void {func_name}();" for func_name in function_names]) + "\n\n"
+        c_program += (
+            "\n".join([f"void {func_name}();" for func_name in function_names]) + "\n\n"
+        )
         c_program += "// global variables\n"
         for vars in self.var_lookup.values():
-            c_program += "\n".join([f"{self.smt_sort_to_c(v[1])} {v[0]};" for v in vars]) + "\n\n"
+            c_program += (
+                "\n".join([f"{self.smt_sort_to_c(v[1])} {v[0]};" for v in vars])
+                + "\n\n"
+            )
         c_program += "// rules\n"
         c_program += "\n".join(functions) + "\n\n"
         c_program += "// main function\n"
         c_program += "int main() {\n  int i = __VERIFIER_nondet_int();\n  switch(i) {\n"
-        c_program += "\n".join([f"    case {i}: {func}(); break;" for i, func in enumerate(function_names)]) + "\n"
+        c_program += (
+            "\n".join(
+                [
+                    f"    case {i}: {func}(); break;"
+                    for i, func in enumerate(function_names)
+                ]
+            )
+            + "\n"
+        )
         c_program += "    default: abort(); break;\n  }\n}"
         return c_program
-
 
     def create_function(self, body, bound_vars, func_name, rule):
         condition = body.arg(0)  # Left-hand side of the implication
@@ -119,7 +184,16 @@ class LinearCHC2C(BaseCHC2C):
         # Generate function body
         func_body += f"void {func_name}() {{\n"
         # Declare the parameters as unbound variables
-        func_body += "  " + "\n  ".join(map(lambda v: f"{self.smt_sort_to_c(v[1])} {v[0]} = __VERIFIER_nondet_{self.smt_sort_to_c(v[1])}();", [x for x in bound_vars if x[0] != "CHC_COMP_UNUSED"])) + "\n"
+        func_body += (
+            "  "
+            + "\n  ".join(
+                map(
+                    lambda v: f"{self.smt_sort_to_c(v[1])} {v[0]} = __VERIFIER_nondet_{self.smt_sort_to_c(v[1])}();",
+                    [x for x in bound_vars if x[0] != "CHC_COMP_UNUSED"],
+                )
+            )
+            + "\n"
+        )
         # Convert the left-hand side of the implication to C (condition)
         condition_str = self.expr_to_c(condition, bound_vars)
         func_body += f"  if ({condition_str}) {{\n"
