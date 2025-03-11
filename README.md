@@ -42,3 +42,27 @@ This command converts the `example.chc` file to C code and writes the output to 
 
 ## Further Information
 For more information on the CHC format, visit [CHC Competition Documentation](https://chc-comp.github.io/format.html).
+
+## Contributors
+
+ * [Levente Bajczi](https://github.com/leventebajczi/)
+ * [Mihály Dobos-Kovács](https://github.com/as3810t/)
+
+## Publications
+
+```bibtex
+@inproceedings{chc2c,
+    author = {Bajczi, Levente and Moln\'{a}r, Vince},
+    title = {Solving Constrained Horn Clauses as&nbsp;C Programs with&nbsp;CHC2C},
+    year = {2024},
+    isbn = {978-3-031-66148-8},
+    publisher = {Springer-Verlag},
+    address = {Berlin, Heidelberg},
+    doi = {10.1007/978-3-031-66149-5_8},
+    booktitle = {Model Checking Software: 30th International Symposium, SPIN 2024, Luxembourg City, Luxembourg, April 8–9, 2024, Proceedings},
+    pages = {146–163},
+    numpages = {18},
+    keywords = {CHC, verification, formal methods, software verification},
+    location = {Luxembourg City, Luxembourg}
+}
+```
