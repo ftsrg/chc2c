@@ -33,11 +33,11 @@ jobs:
           unzip Theta.zip
           mv Theta theta
 
-      # Step 3: Select 5 random .smt2 files from 'LIA' and 'LIA-Lin'
+      # Step 3: Select 10 random .smt2 files from 'LIA-Lin'
       - name: Select random .smt2 files
         id: select_files
         run: |
-          find chc-benchmarks/LIA chc-benchmarks/LIA-Lin -name "*.smt2" | shuf -n 5 --random-source <(yes 42) > selected_files.txt
+          find chc-benchmarks/LIA-Lin -name "*.smt2" | shuf -n 10 --random-source <(yes 42) > selected_files.txt
           cat selected_files.txt
 
       # Step 4: Run Z3, chc2c, and Theta for each file
@@ -72,7 +72,7 @@ jobs:
           
             # Run Theta on the .c file (with 3-minute timeout), capture multiline output
             echo "Running theta: "
-            theta_output=$(timeout 180 ./theta/theta-start.sh "$c_file" --property unreach-call.prp --svcomp --backend CEGAR --domain PRED_CART --refinement BW_BIN_ITP --predsplit WHOLE --loglevel RESULT 2>&1 || echo "timeout")
+            theta_output=$(timeout 180 ./theta/theta-start.sh "$c_file" --property unreach-call.prp --svcomp --backend CEGAR --domain PRED_CART --refinement BW_BIN_ITP --loglevel RESULT 2>&1 || echo "timeout")
             echo "theta result: $theta_output"
             if echo "$theta_output" | grep -q "SafetyResult Unsafe"; then
               theta_result="unsafe"
