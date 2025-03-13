@@ -145,7 +145,9 @@ class LinearCHC2C(BaseCHC2C):
         c_program += "// rules\n"
         c_program += "\n".join(functions) + "\n\n"
         c_program += "// main function\n"
-        c_program += "int main() {\n  int i = __VERIFIER_nondet_int();\n  while(1) {\n    switch(i) {\n"
+        c_program += (
+            "int main() {\n  while(1) {\n    switch(__VERIFIER_nondet_int()) {\n"
+        )
         c_program += (
             "\n".join(
                 [

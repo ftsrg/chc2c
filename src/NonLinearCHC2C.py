@@ -120,8 +120,11 @@ class NonLinearCHC2C(BaseCHC2C):
         func_body += f"/*\n{"\n".join([str(b[0]) for b in bodies])}\n*/\n"
         # Generate function body
         func_body += f"_Bool {func_name}({", ".join([self.smt_sort_to_c(head.arg(i).sort()) + f" p{i}" for i in range(head.num_args())])}) {{\n"
-        for rule, bound_vars in bodies:
-            func_body += "  {\n"
+        multiple_rules = len(bodies) > 1
+        if multiple_rules:
+            func_body += "  switch(__VERIFIER_nondet_int()) {\n"
+        for i, (rule, bound_vars) in enumerate(bodies):
+            func_body += f"  case {i}: {{\n" if multiple_rules else "  {\n"
             modified_bound_vars = [x for x in bound_vars]
             for i, v in enumerate(rule.body().arg(1).children()):
                 index = z3.get_var_index(v)
@@ -146,8 +149,12 @@ class NonLinearCHC2C(BaseCHC2C):
             # Convert the left-hand side of the implication to C (condition)
             condition_str = self.expr_to_c(body, modified_bound_vars)
             func_body += f"    if ({condition_str}) {{ return 1; }}\n"
+            if multiple_rules:
+                func_body += "    break;\n"
             func_body += "  }\n"
 
+        if multiple_rules:
+            func_body += "  default: abort(); break;\n  }\n"
         func_body += "  return 0;\n"
         func_body += "}\n\n"
         return func_body
