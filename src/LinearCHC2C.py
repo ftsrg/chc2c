@@ -145,17 +145,17 @@ class LinearCHC2C(BaseCHC2C):
         c_program += "// rules\n"
         c_program += "\n".join(functions) + "\n\n"
         c_program += "// main function\n"
-        c_program += "int main() {\n  int i = __VERIFIER_nondet_int();\n  switch(i) {\n"
+        c_program += "int main() {\n  int i = __VERIFIER_nondet_int();\n  while(1) {\n    switch(i) {\n"
         c_program += (
             "\n".join(
                 [
-                    f"    case {i}: {func}(); break;"
+                    f"      case {i}: {func}(); break;"
                     for i, func in enumerate(function_names)
                 ]
             )
             + "\n"
         )
-        c_program += "    default: abort(); break;\n  }\n}"
+        c_program += "      default: abort(); break;\n    }\n  }\n}"
         return c_program
 
     def create_function(self, body, bound_vars, func_name, rule):

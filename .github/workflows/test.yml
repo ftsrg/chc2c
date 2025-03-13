@@ -1,0 +1,85 @@
+name: Run CHC Benchmarks
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 1: Download chc-comp24-benchmarks
+      - name: Download and unzip CHC benchmarks
+        run: |
+          curl -L -o chc-comp-benchmarks.zip https://github.com/chc-comp/chc-comp24-benchmarks/archive/refs/heads/main.zip
+          unzip chc-comp-benchmarks.zip
+          mv chc-comp24-benchmarks-main chc-benchmarks
+
+      # Step 2: Download Theta
+      - name: Download and unzip Theta
+        run: |
+          curl -L -o Theta.zip https://github.com/ftsrg/theta/releases/download/v6.11.6/Theta.zip
+          unzip Theta.zip
+          mv Theta theta
+
+      # Step 3: Select 5 random .smt2 files from 'LIA' and 'LIA-Lin'
+      - name: Select random .smt2 files
+        id: select_files
+        run: |
+          find chc-benchmarks/LIA chc-benchmarks/LIA-Lin -name "*.smt2" | shuf -n 5 --random-source <(yes 42) > selected_files.txt
+          cat selected_files.txt
+
+      # Step 4: Run Z3, chc2c, and Theta for each file
+      - name: Process selected files
+        run: |
+          echo "| task name | z3 output | theta output |" > results.md
+          echo "| --------- | --------- | ------------ |" >> results.md
+          while IFS= read -r inputfile; do
+            task_name=$(basename "$inputfile")
+          
+            # Run Z3 with a timeout of 1 minute
+            z3_output=$(timeout 60 z3 "$inputfile")
+            if [[ $z3_output == *"sat"* ]]; then
+              z3_result="sat"
+            elif [[ $z3_output == *"unsat"* ]]; then
+              z3_result="unsat"
+            else
+              continue  # Skip if unknown result
+            fi
+          
+            # Convert .smt2 file to .c using chc2c.py (with 1-minute timeout)
+            c_file="${inputfile%.smt2}.c"
+            timeout 60 python3 chc2c.py "$inputfile" -o "$c_file"
+            if [[ $? -ne 0 ]]; then
+              continue  # Skip if conversion failed or timed out
+            fi
+          
+            # Run Theta on the .c file (with 3-minute timeout)
+            theta_output=$(timeout 180 ./theta/theta-start.sh "$c_file" --svcomp --portfolio STABLE)
+            if [[ $theta_output == *"SafetyResult Unsafe"* ]]; then
+              theta_result="unsat"
+            elif [[ $theta_output == *"SafetyResult Safe"* ]]; then
+              theta_result="sat"
+            else
+              theta_result="unknown"
+            fi
+          
+            # Add results to markdown table
+            echo "| $task_name | $z3_result | $theta_result |" >> results.md
+          done < selected_files.txt
+
+      # Step 5: Print the results table
+      - name: Output the results table
+        run: cat results.md
+
+      # Step 6: Comment on the pull request with the results (only on PR)
+      - name: Comment on PR with results
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: results.md
