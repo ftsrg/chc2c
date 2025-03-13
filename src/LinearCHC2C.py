@@ -64,17 +64,17 @@ class LinearCHC2C(BaseCHC2C):
             func = expr.decl()
             self.propagate_callgraph(func)
             self.create_uf_vars(expr)
-            if expr.num_args() > 0:
-                return (
-                    "("
-                    + " && ".join(
+            return (
+                "("
+                + " && ".join(
+                    [self.var_lookup[func][-1][0]]
+                    + [
                         f"{self.var_lookup[func][i][0]} == {self.expr_to_c(expr.arg(i), bound_vars)}"
                         for i in range(expr.num_args())
-                    )
-                    + ")"
+                    ]
                 )
-            else:
-                return self.var_lookup[func][0][0]
+                + ")"
+            )
         else:
             raise NotImplementedError(f"Expression {expr} not supported.")
 
@@ -85,7 +85,7 @@ class LinearCHC2C(BaseCHC2C):
                 self.var_lookup[func] = [
                     (f"{self.sanitize_identifier(str(func))}_{i}", expr.arg(i).sort())
                     for i in range(expr.num_args())
-                ]
+                ] + [(self.sanitize_identifier(str(func)), z3.BoolSort())]
             else:
                 self.var_lookup[func] = [
                     (self.sanitize_identifier(str(func)), z3.BoolSort())
@@ -196,8 +196,8 @@ class LinearCHC2C(BaseCHC2C):
                 arg = conclusion.arg(i)
                 var = self.var_lookup[func][i]
                 func_body += f"    {var[0]} = {self.expr_to_c(arg, bound_vars)};\n"
-            if conclusion.num_args() == 0:
-                func_body += f"    {self.var_lookup[func][0][0]} = 1;\n"
+            func_body += f"    {self.var_lookup[func][-1][0]} = 1;\n"
+
         else:
             raise NotImplementedError(f"Right-hand-side {conclusion} is not supported.")
         # Else branch calls abort()

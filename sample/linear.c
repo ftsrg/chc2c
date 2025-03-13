@@ -18,6 +18,7 @@ int _INV_MAIN_1__2;
 int _INV_MAIN_1__3;
 int _INV_MAIN_1__4;
 int _INV_MAIN_1__5;
+_Bool _INV_MAIN_1_;
 
 // rules
 /*
@@ -43,6 +44,7 @@ void rule_0() {
     _INV_MAIN_1__3 = D;
     _INV_MAIN_1__4 = E;
     _INV_MAIN_1__5 = F;
+    _INV_MAIN_1_ = 1;
   } else {
     abort();
   }
@@ -71,13 +73,14 @@ void rule_1() {
   int C = __VERIFIER_nondet_int();
   int B = __VERIFIER_nondet_int();
   int A = __VERIFIER_nondet_int();
-  if (((_INV_MAIN_1__0 == G && _INV_MAIN_1__1 == B && _INV_MAIN_1__2 == H && _INV_MAIN_1__3 == I && _INV_MAIN_1__4 == E && _INV_MAIN_1__5 == J) && (((H + G) == C) && (I == ((-1) + D)) && (G == ((-1) + A)) && (B >= G) && (E >= I) && ((J + I) == F)))) {
+  if (((_INV_MAIN_1_ && _INV_MAIN_1__0 == G && _INV_MAIN_1__1 == B && _INV_MAIN_1__2 == H && _INV_MAIN_1__3 == I && _INV_MAIN_1__4 == E && _INV_MAIN_1__5 == J) && (((H + G) == C) && (I == ((-1) + D)) && (G == ((-1) + A)) && (B >= G) && (E >= I) && ((J + I) == F)))) {
     _INV_MAIN_1__0 = A;
     _INV_MAIN_1__1 = B;
     _INV_MAIN_1__2 = C;
     _INV_MAIN_1__3 = D;
     _INV_MAIN_1__4 = E;
     _INV_MAIN_1__5 = F;
+    _INV_MAIN_1_ = 1;
   } else {
     abort();
   }
@@ -102,13 +105,14 @@ void rule_2() {
   int C = __VERIFIER_nondet_int();
   int B = __VERIFIER_nondet_int();
   int A = __VERIFIER_nondet_int();
-  if (((_INV_MAIN_1__0 == G && _INV_MAIN_1__1 == B && _INV_MAIN_1__2 == H && _INV_MAIN_1__3 == D && _INV_MAIN_1__4 == E && _INV_MAIN_1__5 == F) && ((G == ((-1) + A)) && (B >= G) && (!(E >= D)) && ((H + G) == C)))) {
+  if (((_INV_MAIN_1_ && _INV_MAIN_1__0 == G && _INV_MAIN_1__1 == B && _INV_MAIN_1__2 == H && _INV_MAIN_1__3 == D && _INV_MAIN_1__4 == E && _INV_MAIN_1__5 == F) && ((G == ((-1) + A)) && (B >= G) && (!(E >= D)) && ((H + G) == C)))) {
     _INV_MAIN_1__0 = A;
     _INV_MAIN_1__1 = B;
     _INV_MAIN_1__2 = C;
     _INV_MAIN_1__3 = D;
     _INV_MAIN_1__4 = E;
     _INV_MAIN_1__5 = F;
+    _INV_MAIN_1_ = 1;
   } else {
     abort();
   }
@@ -133,13 +137,14 @@ void rule_3() {
   int C = __VERIFIER_nondet_int();
   int B = __VERIFIER_nondet_int();
   int A = __VERIFIER_nondet_int();
-  if (((_INV_MAIN_1__0 == A && _INV_MAIN_1__1 == B && _INV_MAIN_1__2 == C && _INV_MAIN_1__3 == G && _INV_MAIN_1__4 == E && _INV_MAIN_1__5 == H) && ((G == ((-1) + D)) && (!(B >= A)) && (E >= G) && ((H + G) == F)))) {
+  if (((_INV_MAIN_1_ && _INV_MAIN_1__0 == A && _INV_MAIN_1__1 == B && _INV_MAIN_1__2 == C && _INV_MAIN_1__3 == G && _INV_MAIN_1__4 == E && _INV_MAIN_1__5 == H) && ((G == ((-1) + D)) && (!(B >= A)) && (E >= G) && ((H + G) == F)))) {
     _INV_MAIN_1__0 = A;
     _INV_MAIN_1__1 = B;
     _INV_MAIN_1__2 = C;
     _INV_MAIN_1__3 = D;
     _INV_MAIN_1__4 = E;
     _INV_MAIN_1__5 = F;
+    _INV_MAIN_1_ = 1;
   } else {
     abort();
   }
@@ -161,7 +166,7 @@ void rule_4() {
   int C = __VERIFIER_nondet_int();
   int B = __VERIFIER_nondet_int();
   int A = __VERIFIER_nondet_int();
-  if (((_INV_MAIN_1__0 == F && _INV_MAIN_1__1 == E && _INV_MAIN_1__2 == A && _INV_MAIN_1__3 == D && _INV_MAIN_1__4 == C && _INV_MAIN_1__5 == B) && ((!(E >= F)) && (!(C >= D)) && (!(A == B))))) {
+  if (((_INV_MAIN_1_ && _INV_MAIN_1__0 == F && _INV_MAIN_1__1 == E && _INV_MAIN_1__2 == A && _INV_MAIN_1__3 == D && _INV_MAIN_1__4 == C && _INV_MAIN_1__5 == B) && ((!(E >= F)) && (!(C >= D)) && (!(A == B))))) {
     reach_error();
   } else {
     abort();
