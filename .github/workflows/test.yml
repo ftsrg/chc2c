@@ -33,18 +33,77 @@ jobs:
           unzip Theta.zip
           mv Theta theta
 
-      # Step 3: Select 25 random .smt2 files from 'LIA-Lin'
-      - name: Select random .smt2 files
-        id: select_files
+      # Step 3: Run Z3, chc2c, and Theta for each file
+      - name: Process selected files
         run: |
           find chc-benchmarks/LIA-Lin -name "*.smt2" | shuf --random-source <(yes 42) > selected_files.txt
           cat selected_files.txt
+          echo "| task name | z3 output | theta output |" > results.md
+          echo "| --------- | --------- | ------------ |" >> results.md
+          
+          sat=0
+          unsat=0
+          
+          while IFS= read -r inputfile; do
+            if (( unsat + sat > 11 )); then
+              echo "We have enough problems, break"
+              break
+            fi
+            task_name=$(basename "$inputfile")
+            echo "$task_name"
+          
+            # Run Z3 with a timeout of 1 minute, capture multiline output
+            echo "Running z3: "
+            z3_output=$(timeout 60 z3 "$inputfile" 2>&1 || echo "timeout")
+            echo "z3 result: $z3_output"
+            if echo "$z3_output" | grep -q "^sat$"; then
+              z3_result="sat"
+              if (( sat > 5 )); then
+                echo "We have enough sat problems, continue.."
+                continue
+              fi
+              sat=$((sat+1))
+            elif echo "$z3_output" | grep -q "^unsat$"; then
+              z3_result="unsat"
+              if (( unsat > 5 )); then
+                echo "We have enough unsat problems, continue.."
+                continue
+              fi
+              unsat=$((unsat+1))
+            else
+              continue  # Skip if result is unknown or not sat/unsat
+            fi
+          
+            # Convert .smt2 file to .c using chc2c.py (with 1-minute timeout)
+            echo "Converting CHC2C: "
+            c_file="${inputfile%.smt2}.c"
+            chc2c_output=$(timeout 60 python3 chc2c.py "$inputfile" -o "$c_file" 2>&1 || echo "timeout")
+            if [[ $? -ne 0 ]]; then
+              echo "chc2c timed out"
+              continue  # Skip if conversion failed or timed out
+            fi
+          
+            # Run Theta on the .c file (with 3-minute timeout), capture multiline output
+            echo "Running theta: "
+            theta_output=$(timeout 180 ./theta/theta-start.sh "$c_file" --property unreach-call.prp --svcomp --backend CEGAR --domain PRED_CART --refinement BW_BIN_ITP --loglevel RESULT 2>&1 || echo "timeout")
+            echo "theta result: $theta_output"
+            if echo "$theta_output" | grep -q "SafetyResult Unsafe"; then
+              theta_result="unsafe"
+            elif echo "$theta_output" | grep -q "SafetyResult Safe"; then
+              theta_result="safe"
+            else
+              theta_result="unknown"
+            fi
+          
+            # Add results to markdown table
+            echo "| $task_name | $z3_result | $theta_result |" >> results.md
+          done < selected_files.txt
 
       # Step 4: Run Z3, chc2c, and Theta for each file
       - name: Process selected files
         run: |
-          echo "| task name | z3 output | theta output |" > results.md
-          echo "| --------- | --------- | ------------ |" >> results.md
+          find chc-benchmarks/LIA -name "*.smt2" | shuf --random-source <(yes 42) > selected_files.txt
+          cat selected_files.txt
           
           sat=0
           unsat=0
