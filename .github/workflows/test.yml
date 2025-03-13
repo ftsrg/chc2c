@@ -50,6 +50,7 @@ jobs:
             echo "$task_name"
           
             # Run Z3 with a timeout of 1 minute, capture multiline output
+            echo "Running z3: "
             z3_output=$(timeout 60 z3 "$inputfile" 2>&1 || echo "timeout")
             echo "z3 result: $z3_output"
             if echo "$z3_output" | grep -q "sat"; then
@@ -61,6 +62,7 @@ jobs:
             fi
           
             # Convert .smt2 file to .c using chc2c.py (with 1-minute timeout)
+            echo "Converting CHC2C: "
             c_file="${inputfile%.smt2}.c"
             chc2c_output=$(timeout 60 python3 chc2c.py "$inputfile" -o "$c_file" 2>&1 || echo "timeout")
             if [[ $? -ne 0 ]]; then
@@ -69,6 +71,7 @@ jobs:
             fi
           
             # Run Theta on the .c file (with 3-minute timeout), capture multiline output
+            echo "Running theta: "
             theta_output=$(timeout 180 ./theta/theta-start.sh "$c_file" --property unreach-call.prp --svcomp --portfolio EMERGENT --loglevel RESULT 2>&1 || echo "timeout")
             echo "theta result: $theta_output"
             if echo "$theta_output" | grep -q "SafetyResult Unsafe"; then
