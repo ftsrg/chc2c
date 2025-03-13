@@ -32,14 +32,23 @@ jobs:
           curl -L -o Theta.zip https://github.com/ftsrg/theta/releases/download/v6.11.6/Theta.zip
           unzip Theta.zip
           mv Theta theta
+          sudo apt-get install -y openjdk-17-jre-headless libmpfr6 libgomp1
 
+      - name: Download Symbiotic
+        run: |
+          curl -L -o symbiotic.zip https://zenodo.org/record/14230101/files/symbiotic.zip
+          unzip symbiotic.zip
+          echo "CHECK( init(main()), LTL(G ! call(reach_error())) )" > unreach-call.prp      
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-lxml python3-clang
+      
       # Step 3: Run Z3, chc2c, and Theta for each file
       - name: Process selected files
         run: |
           find chc-benchmarks/LIA-Lin -name "*.smt2" | shuf --random-source <(yes 42) > selected_files.txt
           cat selected_files.txt
-          echo "| task name | z3 output | theta output |" > results.md
-          echo "| --------- | --------- | ------------ |" >> results.md
+          echo "| task name | z3 output | theta output | symbiotic output |" > results.md
+          echo "| --------- | --------- | ------------ | ---------------- |" >> results.md
           
           sat=0
           unsat=0
@@ -95,8 +104,20 @@ jobs:
               theta_result="unknown"
             fi
           
+            # Run Symbiotic on the .c file (with 3-minute timeout), capture multiline output
+            echo "Running symbiotic: "
+            symbiotic_output=$(timeout 180 ./symbiotic/bin/symbiotic --prp=unreach-call.prp "$c_file" 2>&1 || echo "timeout")
+            echo "symbiotic result: $symbiotic_output"
+            if echo "$symbiotic_output" | grep -q "RESULT: true"; then
+              symbiotic_result="unsafe"
+            elif echo "$symbiotic_output" | grep -q "RESULT: false"; then
+              symbiotic_result="safe"
+            else
+              symbiotic_result="unknown"
+            fi
+          
             # Add results to markdown table
-            echo "| $task_name | $z3_result | $theta_result |" >> results.md
+            echo "| $task_name | $z3_result | $theta_result | $symbiotic_result |" >> results.md
           done < selected_files.txt
 
       # Step 4: Run Z3, chc2c, and Theta for each file
