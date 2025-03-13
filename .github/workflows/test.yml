@@ -37,7 +37,7 @@ jobs:
       - name: Select random .smt2 files
         id: select_files
         run: |
-          find chc-benchmarks/LIA-Lin -name "*.smt2" | shuf -n 25 --random-source <(yes 42) > selected_files.txt
+          find chc-benchmarks/LIA-Lin -name "*.smt2" | shuf --random-source <(yes 42) > selected_files.txt
           cat selected_files.txt
 
       # Step 4: Run Z3, chc2c, and Theta for each file
@@ -45,7 +45,14 @@ jobs:
         run: |
           echo "| task name | z3 output | theta output |" > results.md
           echo "| --------- | --------- | ------------ |" >> results.md
+          
+          sat=0
+          unsat=0
+          
           while IFS= read -r inputfile; do
+            if (( unsat + sat > 11 )); then
+              break
+            fi
             task_name=$(basename "$inputfile")
             echo "$task_name"
           
@@ -55,8 +62,16 @@ jobs:
             echo "z3 result: $z3_output"
             if echo "$z3_output" | grep -q "sat"; then
               z3_result="sat"
+              sat=$((sat+1))
+              if (( sat > 5 )); then
+                continue
+              fi
             elif echo "$z3_output" | grep -q "unsat"; then
               z3_result="unsat"
+              unsat=$((unsat+1))
+              if (( unsat > 5 )); then
+                continue
+              fi
             else
               continue  # Skip if result is unknown or not sat/unsat
             fi
