@@ -61,14 +61,14 @@ jobs:
             echo "Running z3: "
             z3_output=$(timeout 60 z3 "$inputfile" 2>&1 || echo "timeout")
             echo "z3 result: $z3_output"
-            if echo "$z3_output" | grep -q "sat"; then
+            if echo "$z3_output" | grep -q "^sat$"; then
               z3_result="sat"
               if (( sat > 5 )); then
                 echo "We have enough sat problems, continue.."
                 continue
               fi
               sat=$((sat+1))
-            elif echo "$z3_output" | grep -q "unsat"; then
+            elif echo "$z3_output" | grep -q "^unsat$"; then
               z3_result="unsat"
               if (( unsat > 5 )); then
                 echo "We have enough unsat problems, continue.."
