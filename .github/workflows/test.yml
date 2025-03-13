@@ -47,9 +47,11 @@ jobs:
           echo "| --------- | --------- | ------------ |" >> results.md
           while IFS= read -r inputfile; do
             task_name=$(basename "$inputfile")
+            echo "$task_name"
           
             # Run Z3 with a timeout of 1 minute, capture multiline output
             z3_output=$(timeout 60 z3 "$inputfile" 2>&1 || echo "timeout")
+            echo "z3 result: $z3_output"
             if echo "$z3_output" | grep -q "sat"; then
               z3_result="sat"
             elif echo "$z3_output" | grep -q "unsat"; then
@@ -62,11 +64,13 @@ jobs:
             c_file="${inputfile%.smt2}.c"
             chc2c_output=$(timeout 60 python3 chc2c.py "$inputfile" -o "$c_file" 2>&1 || echo "timeout")
             if [[ $? -ne 0 ]]; then
+              echo "chc2c timed out"
               continue  # Skip if conversion failed or timed out
             fi
           
             # Run Theta on the .c file (with 3-minute timeout), capture multiline output
             theta_output=$(timeout 180 ./theta/theta-start.sh "$c_file" --svcomp --portfolio STABLE 2>&1 || echo "timeout")
+            echo "theta result: $theta_output"
             if echo "$theta_output" | grep -q "SafetyResult Unsafe"; then
               theta_result="unsafe"
             elif echo "$theta_output" | grep -q "SafetyResult Safe"; then
