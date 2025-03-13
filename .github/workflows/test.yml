@@ -72,7 +72,7 @@ jobs:
           
             # Run Theta on the .c file (with 3-minute timeout), capture multiline output
             echo "Running theta: "
-            theta_output=$(timeout 180 ./theta/theta-start.sh "$c_file" --property unreach-call.prp --svcomp --portfolio EMERGENT --loglevel RESULT 2>&1 || echo "timeout")
+            theta_output=$(timeout 180 ./theta/theta-start.sh "$c_file" --property unreach-call.prp --svcomp --backend CEGAR --domain PRED_SPLIT --refinement BW_BIN_ITP --predsplit WHOLE --loglevel RESULT 2>&1 || echo "timeout")
             echo "theta result: $theta_output"
             if echo "$theta_output" | grep -q "SafetyResult Unsafe"; then
               theta_result="unsafe"
