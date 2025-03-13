@@ -33,11 +33,11 @@ jobs:
           unzip Theta.zip
           mv Theta theta
 
-      # Step 3: Select 10 random .smt2 files from 'LIA-Lin'
+      # Step 3: Select 25 random .smt2 files from 'LIA-Lin'
       - name: Select random .smt2 files
         id: select_files
         run: |
-          find chc-benchmarks/LIA-Lin -name "*.smt2" | shuf -n 10 --random-source <(yes 42) > selected_files.txt
+          find chc-benchmarks/LIA-Lin -name "*.smt2" | shuf -n 25 --random-source <(yes 42) > selected_files.txt
           cat selected_files.txt
 
       # Step 4: Run Z3, chc2c, and Theta for each file
