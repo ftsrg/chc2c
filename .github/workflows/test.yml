@@ -108,7 +108,7 @@ jobs:
           
               # Run Symbiotic on the .c file (with 3-minute timeout), capture multiline output
               echo "Running symbiotic: "
-              symbiotic_output=$(timeout 180 ./symbiotic/bin/symbiotic --prp=unreach-call.prp "$c_file" 2>&1 || echo "timeout")
+              symbiotic_output=$(timeout 180 ./symbiotic/bin/symbiotic --sv-comp --prp=unreach-call.prp --64 "$c_file" 2>&1 || echo "timeout")
               echo "symbiotic result: $symbiotic_output"
               if echo "$symbiotic_output" | grep -q "RESULT: true"; then
                 symbiotic_result="unsafe"
