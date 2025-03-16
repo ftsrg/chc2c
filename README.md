@@ -26,7 +26,7 @@ Run `pip install -r requirements.txt` to install all python dependencies.
 Clone the repository and navigate to the directory:
 
 ```bash
-git clone https://github.com/your-repo/CHC2C.git
+git clone https://github.com/ftsrg/CHC2C.git
 cd CHC2C
 ```
 
@@ -52,6 +52,8 @@ recursive mapping.
 ```
 
 This command converts the `example.chc` file to C code and writes the output to `output.c`.
+
+An example can be seen in the `sample` folder (both for linear and recursive mapping).
 
 ## Further Information
 
