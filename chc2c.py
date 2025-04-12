@@ -15,6 +15,7 @@
 #   limitations under the License.
 
 import argparse
+import os
 
 from src.LinearCHC2C import LinearCHC2C, RecursiveException
 from src.NonLinearCHC2C import NonLinearCHC2C
@@ -51,6 +52,8 @@ def main():
             program = NonLinearCHC2C().chc_to_c_program(text, args.out)
         with open(args.out, "w") as f_out:
             f_out.write(program)
+
+    print(f"Mapping done. Output: {os.path.abspath(args.filename)}")
 
 
 if __name__ == "__main__":
