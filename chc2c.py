@@ -31,6 +31,7 @@ def main():
 
     parser.add_argument("-o", "--out", default="chc.c")
     parser.add_argument("--recursive", action="store_true")
+    parser.add_argument("--no-retry", action="store_true")
 
     args = parser.parse_args()
     with open(args.filename, "r") as f_in:
@@ -40,6 +41,11 @@ def main():
             try:
                 program = LinearCHC2C().chc_to_c_program(text, args.out)
             except RecursiveException:
+                if args.no_retry:
+                    print(
+                        "Unable to map without recursion, but --no-retry is enabled. Exiting."
+                    )
+                    return
                 print("Retrying with recursive mapping...")
         if not program:
             program = NonLinearCHC2C().chc_to_c_program(text, args.out)
