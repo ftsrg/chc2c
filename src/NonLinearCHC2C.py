@@ -88,7 +88,11 @@ class NonLinearCHC2C(BaseCHC2C):
 
         c_program = textwrap.dedent(
             f"""
+        extern char __VERIFIER_nondet_char();
+        extern short __VERIFIER_nondet_short();
         extern int __VERIFIER_nondet_int();
+        extern long __VERIFIER_nondet_long();
+        extern long long __VERIFIER_nondet_long_long();
         extern _Bool __VERIFIER_nondet__Bool();
         extern void abort(void);
         extern void __assert_fail(const char *, const char *, unsigned int, const char *);
