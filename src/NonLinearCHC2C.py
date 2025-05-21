@@ -16,7 +16,7 @@ import textwrap
 
 import z3
 
-from src.BaseCHC2C import BaseCHC2C
+from src.BaseCHC2C import BaseCHC2C, sanitize_identifier
 
 
 # This works for all CHCs, linear, nonlinear, recursive, etc.
@@ -32,7 +32,7 @@ class NonLinearCHC2C(BaseCHC2C):
             return simple_expr
         elif z3.is_app(expr):
             func = expr.decl()
-            ret = self.sanitize_identifier(func.name()) + "("
+            ret = sanitize_identifier(func.name()) + "("
             ret += ", ".join(
                 [
                     self.expr_to_c(expr.arg(i), bound_vars)
@@ -77,7 +77,7 @@ class NonLinearCHC2C(BaseCHC2C):
                         elif z3.is_app(conclusion):
                             func = conclusion.decl()
                             function_declarations.append(
-                                f"_Bool {self.sanitize_identifier(str(func))}({", ".join([self.smt_sort_to_c(conclusion.arg(i).sort()) for i in range(conclusion.num_args())])});"
+                                f"_Bool {sanitize_identifier(str(func))}({", ".join([self.smt_sort_to_c(conclusion.arg(i).sort()) for i in range(conclusion.num_args())])});"
                             )
                     UFs[func_name][1].append((rule, bound_vars))
 
@@ -94,6 +94,9 @@ class NonLinearCHC2C(BaseCHC2C):
         extern long __VERIFIER_nondet_long();
         extern long long __VERIFIER_nondet_long_long();
         extern _Bool __VERIFIER_nondet__Bool();
+        extern float __VERIFIER_nondet_float();
+        extern double __VERIFIER_nondet_double();
+        extern long double __VERIFIER_nondet_long_double();
         extern void abort(void);
         extern void __assert_fail(const char *, const char *, unsigned int, const char *);
         void reach_error() {{ __assert_fail("0", "{filename}", 0, "reach_error"); }}
@@ -117,7 +120,7 @@ class NonLinearCHC2C(BaseCHC2C):
         func_name = (
             "__chc_false"
             if z3.is_false(head)
-            else self.sanitize_identifier(head.decl().name())
+            else sanitize_identifier(head.decl().name())
         )
         func_body = ""
         # Add the CHC rule as a comment
@@ -144,7 +147,7 @@ class NonLinearCHC2C(BaseCHC2C):
                 "    "
                 + "\n    ".join(
                     map(
-                        lambda v: f"{self.smt_sort_to_c(v[1])} {v[0]} = __VERIFIER_nondet_{self.smt_sort_to_c(v[1])}();",
+                        lambda v: f"{self.smt_sort_to_c(v[1])} {sanitize_identifier(v[0])} = __VERIFIER_nondet_{self.smt_sort_to_c(v[1]).replace(' ', '_')}();",
                         [x for x in body_bound_vars if x[0] != "CHC_COMP_UNUSED"],
                     )
                 )

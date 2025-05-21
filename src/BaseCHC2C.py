@@ -18,6 +18,14 @@ import z3
 
 
 # As long as the CHC is nonrecursive, this can be used
+def sanitize_identifier(identifier):
+    # Ensure the first character is a letter or underscore.
+    identifier = re.sub(r"^[^A-Za-z_]", "_", identifier)
+    # Replace any character that is not a letter, digit, or underscore.
+    identifier = re.sub(r"[^A-Za-z0-9_]", "_", identifier)
+    return identifier
+
+
 class BaseCHC2C:
 
     def __init__(self):
@@ -28,10 +36,18 @@ class BaseCHC2C:
             64: "long",
             1: "_Bool",
         }
+        self.floats = {
+            (8, 24): "float",
+            (11, 53): "double",
+            (15, 113): "long double",
+        }
         self.types_lookup = {
             z3.Z3_BOOL_SORT: lambda _: "_Bool",
             z3.Z3_INT_SORT: lambda _: "int",
             z3.Z3_BV_SORT: lambda z3sort: self.bitvectors[z3sort.size()],
+            z3.Z3_FLOATING_POINT_SORT: lambda z3sort: self.floats[
+                (z3sort.ebits(), z3sort.sbits())
+            ],
         }
 
     def get_cast(self, expr, signed: bool = False) -> str:
@@ -58,7 +74,7 @@ class BaseCHC2C:
         elif z3.is_var(expr):  # Bound variable (e.g., Var(0), Var(1), etc.)
             idx = z3.get_var_index(expr)
             if idx < len(bound_vars):
-                return self.sanitize_identifier(bound_vars[idx][0])
+                return sanitize_identifier(bound_vars[idx][0])
             else:
                 raise ValueError(
                     f"Variable index {idx} out of bounds for bound variables {bound_vars}"
@@ -282,6 +298,26 @@ class BaseCHC2C:
             elif kind == z3.Z3_OP_SGT:
                 return f"({casted(expr.arg(0), True)} > {casted(expr.arg(1), True)})"
 
+            elif kind == z3.Z3_OP_FPA_NEG:
+                return f"-{expr.arg(0)}"
+            elif kind == z3.Z3_OP_FPA_ADD:
+                return f"({expr.arg(0)} + {expr.arg(1)})"
+            elif kind == z3.Z3_OP_FPA_SUB:
+                return f"({expr.arg(0)} - {expr.arg(1)})"
+            elif kind == z3.Z3_OP_FPA_MUL:
+                return f"({expr.arg(0)} * {expr.arg(1)})"
+            elif kind == z3.Z3_OP_FPA_DIV:
+                return f"({expr.arg(0)} / {expr.arg(1)})"
+            elif kind == z3.Z3_OP_FPA_EQ:
+                return f"({expr.arg(0)} == {expr.arg(1)})"
+            elif kind == z3.Z3_OP_FPA_LT:
+                return f"({expr.arg(0)} < {expr.arg(1)})"
+            elif kind == z3.Z3_OP_FPA_GT:
+                return f"({expr.arg(0)} > {expr.arg(1)})"
+            elif kind == z3.Z3_OP_FPA_LE:
+                return f"({expr.arg(0)} <= {expr.arg(1)})"
+            elif kind == z3.Z3_OP_FPA_GE:
+                return f"({expr.arg(0)} >= {expr.arg(1)})"
             raise NotImplementedError(
                 f"Operator not implemented: {expr.decl()} (code: {kind})"
             )
@@ -290,10 +326,3 @@ class BaseCHC2C:
         if sort.kind() not in self.types_lookup:
             raise NotImplementedError(f"Sort {sort} not supported.")
         return self.types_lookup[sort.kind()](sort)
-
-    def sanitize_identifier(self, identifier):
-        # Ensure the first character is a letter or underscore.
-        identifier = re.sub(r"^[^A-Za-z_]", "_", identifier)
-        # Replace any character that is not a letter, digit, or underscore.
-        identifier = re.sub(r"[^A-Za-z0-9_]", "_", identifier)
-        return identifier

@@ -16,7 +16,7 @@ import textwrap
 
 import z3
 
-from src.BaseCHC2C import BaseCHC2C
+from src.BaseCHC2C import BaseCHC2C, sanitize_identifier
 
 
 class RecursiveException(Exception):
@@ -83,12 +83,12 @@ class LinearCHC2C(BaseCHC2C):
         if func not in self.var_lookup:
             if expr.num_args() > 0:
                 self.var_lookup[func] = [
-                    (f"{self.sanitize_identifier(str(func))}_{i}", expr.arg(i).sort())
+                    (f"{sanitize_identifier(str(func))}_{i}", expr.arg(i).sort())
                     for i in range(expr.num_args())
-                ] + [(self.sanitize_identifier(str(func)), z3.BoolSort())]
+                ] + [(sanitize_identifier(str(func)), z3.BoolSort())]
             else:
                 self.var_lookup[func] = [
-                    (self.sanitize_identifier(str(func)), z3.BoolSort())
+                    (sanitize_identifier(str(func)), z3.BoolSort())
                 ]
 
     def chc_to_c_program(self, smtlib_file_content, filename):
@@ -131,6 +131,9 @@ class LinearCHC2C(BaseCHC2C):
         extern long __VERIFIER_nondet_long();
         extern long long __VERIFIER_nondet_long_long();
         extern _Bool __VERIFIER_nondet__Bool();
+        extern float __VERIFIER_nondet_float();
+        extern double __VERIFIER_nondet_double();
+        extern long double __VERIFIER_nondet_long_double();
         extern void abort(void);
         extern void __assert_fail(const char *, const char *, unsigned int, const char *);
         void reach_error() {{ __assert_fail("0", "{filename}", 0, "reach_error"); }}
@@ -181,7 +184,7 @@ class LinearCHC2C(BaseCHC2C):
             "  "
             + "\n  ".join(
                 map(
-                    lambda v: f"{self.smt_sort_to_c(v[1])} {v[0]} = __VERIFIER_nondet_{self.smt_sort_to_c(v[1])}();",
+                    lambda v: f"{self.smt_sort_to_c(v[1])} {sanitize_identifier(v[0])} = __VERIFIER_nondet_{self.smt_sort_to_c(v[1]).replace(' ', '_')}();",
                     [x for x in bound_vars if x[0] != "CHC_COMP_UNUSED"],
                 )
             )
