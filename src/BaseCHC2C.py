@@ -326,7 +326,7 @@ class BaseCHC2C:
                 return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), True)} > {casted(expr, self.expr_to_c(expr.arg(1), bound_vars), True)})"
 
             elif kind == z3.Z3_OP_FPA_NEG:
-                return f"-{self.expr_to_c(expr.arg(1), bound_vars)}"
+                return f"-{self.expr_to_c(expr.arg(0), bound_vars)}"
             elif kind == z3.Z3_OP_FPA_ADD:
                 return f"({self.expr_to_c(expr.arg(1), bound_vars)} + {self.expr_to_c(expr.arg(2), bound_vars)})"
             elif kind == z3.Z3_OP_FPA_SUB:
