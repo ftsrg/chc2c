@@ -15,6 +15,7 @@
 import re
 
 import z3
+from z3 import BoolSortRef
 
 
 # As long as the CHC is nonrecursive, this can be used
@@ -30,6 +31,7 @@ class BaseCHC2C:
 
     def __init__(self):
         self.bitvectors = {
+            1: "_Bool",
             8: "char",
             16: "short",
             32: "int",
@@ -51,7 +53,10 @@ class BaseCHC2C:
         }
 
     def get_cast(self, expr, signed: bool = False) -> str:
-        size = expr.size()
+        if isinstance(expr.sort(), BoolSortRef):
+            size = 1
+        else:
+            size = expr.sort().size()
         c_type = self.bitvectors[size]
         return f"({'signed' if signed else 'unsigned'} {c_type})"
 
@@ -261,7 +266,7 @@ class BaseCHC2C:
             elif kind == z3.Z3_OP_CONCAT:
                 left = casted(expr, self.expr_to_c(expr.arg(0), bound_vars))
                 right = casted(expr, self.expr_to_c(expr.arg(1), bound_vars))
-                return f"/* concat */ ({self.get_cast(self.expr_to_c(expr.arg(0), bound_vars).size() + self.expr_to_c(expr.arg(1), bound_vars).size())}{left} << {self.expr_to_c(expr.arg(1), bound_vars).size()}) | ({right})"
+                return f"/* concat */ {left} << {expr.arg(1).size()}) | ({right})"
             elif kind == z3.Z3_OP_SIGN_EXT:
                 return (
                     f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), True)})"
@@ -286,12 +291,12 @@ class BaseCHC2C:
             elif kind == z3.Z3_OP_ROTATE_LEFT:
                 val = casted(expr, self.expr_to_c(expr.arg(0), bound_vars))
                 amt = casted(expr, self.expr_to_c(expr.arg(1), bound_vars))
-                size = self.expr_to_c(expr.arg(0), bound_vars).size()
+                size = expr.arg(0).size()
                 return f"(({val} << {amt}) | ({val} >> ({size} - {amt})))"
             elif kind == z3.Z3_OP_ROTATE_RIGHT:
                 val = casted(expr, self.expr_to_c(expr.arg(0), bound_vars))
                 amt = casted(expr, self.expr_to_c(expr.arg(1), bound_vars))
-                size = self.expr_to_c(expr.arg(0), bound_vars).size()
+                size = expr.arg(0).size()
                 return f"(({val} >> {amt}) | ({val} << ({size} - {amt})))"
             elif kind == z3.Z3_OP_CARRY:
                 a = casted(expr, self.expr_to_c(expr.arg(0), bound_vars))
@@ -321,15 +326,15 @@ class BaseCHC2C:
                 return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), True)} > {casted(expr, self.expr_to_c(expr.arg(1), bound_vars), True)})"
 
             elif kind == z3.Z3_OP_FPA_NEG:
-                return f"-{self.expr_to_c(expr.arg(0), bound_vars)}"
+                return f"-{self.expr_to_c(expr.arg(1), bound_vars)}"
             elif kind == z3.Z3_OP_FPA_ADD:
-                return f"({self.expr_to_c(expr.arg(0), bound_vars)} + {self.expr_to_c(expr.arg(1), bound_vars)})"
+                return f"({self.expr_to_c(expr.arg(1), bound_vars)} + {self.expr_to_c(expr.arg(2), bound_vars)})"
             elif kind == z3.Z3_OP_FPA_SUB:
-                return f"({self.expr_to_c(expr.arg(0), bound_vars)} - {self.expr_to_c(expr.arg(1), bound_vars)})"
+                return f"({self.expr_to_c(expr.arg(1), bound_vars)} - {self.expr_to_c(expr.arg(2), bound_vars)})"
             elif kind == z3.Z3_OP_FPA_MUL:
-                return f"({self.expr_to_c(expr.arg(0), bound_vars)} * {self.expr_to_c(expr.arg(1), bound_vars)})"
+                return f"({self.expr_to_c(expr.arg(1), bound_vars)} * {self.expr_to_c(expr.arg(2), bound_vars)})"
             elif kind == z3.Z3_OP_FPA_DIV:
-                return f"({self.expr_to_c(expr.arg(0), bound_vars)} / {self.expr_to_c(expr.arg(1), bound_vars)})"
+                return f"({self.expr_to_c(expr.arg(1), bound_vars)} / {self.expr_to_c(expr.arg(2), bound_vars)})"
             elif kind == z3.Z3_OP_FPA_EQ:
                 return f"({self.expr_to_c(expr.arg(0), bound_vars)} == {self.expr_to_c(expr.arg(1), bound_vars)})"
             elif kind == z3.Z3_OP_FPA_LT:
@@ -355,43 +360,17 @@ class BaseCHC2C:
             elif kind == z3.Z3_OP_FPA_MINUS_ZERO:
                 return "-0.0"
 
-            elif kind == z3.Z3_OP_FPA_REM:
-                return f"fmod({self.expr_to_c(expr.arg(0), bound_vars)}, {self.expr_to_c(expr.arg(1), bound_vars)})"
-            elif kind == z3.Z3_OP_FPA_ABS:
-                return f"fabs({self.expr_to_c(expr.arg(0), bound_vars)})"
-            elif kind == z3.Z3_OP_FPA_MIN:
-                return f"fmin({self.expr_to_c(expr.arg(0), bound_vars)}, {self.expr_to_c(expr.arg(1), bound_vars)})"
-            elif kind == z3.Z3_OP_FPA_MAX:
-                return f"fmax({self.expr_to_c(expr.arg(0), bound_vars)}, {self.expr_to_c(expr.arg(1), bound_vars)})"
-            elif kind == z3.Z3_OP_FPA_SQRT:
-                return f"sqrt({self.expr_to_c(expr.arg(1), bound_vars)})"
-
-            elif kind == z3.Z3_OP_FPA_IS_NAN:
-                return f"isnan({self.expr_to_c(expr.arg(0), bound_vars)})"
-            elif kind == z3.Z3_OP_FPA_IS_INF:
-                return f"isinf({self.expr_to_c(expr.arg(0), bound_vars)})"
-            elif kind == z3.Z3_OP_FPA_IS_ZERO:
-                return f"({self.expr_to_c(expr.arg(0), bound_vars)} == 0.0)"
-            elif kind == z3.Z3_OP_FPA_IS_NORMAL:
-                return f"fpclassify({self.expr_to_c(expr.arg(0), bound_vars)}) == FP_NORMAL"
-            elif kind == z3.Z3_OP_FPA_IS_SUBNORMAL:
-                return f"fpclassify({self.expr_to_c(expr.arg(0), bound_vars)}) == FP_SUBNORMAL"
-            elif kind == z3.Z3_OP_FPA_IS_NEGATIVE:
-                return f"0.0f > {self.expr_to_c(expr.arg(0), bound_vars)}"
-            elif kind == z3.Z3_OP_FPA_IS_POSITIVE:
-                return f"0.0f < {self.expr_to_c(expr.arg(0), bound_vars)}"
-
             elif kind == z3.Z3_OP_FPA_TO_FP:
                 sort = expr.sort()
                 float_type = self.floats.get(
-                    (sort.ebits(), sort.sbits()), "/* unknown float type */"
+                    (sort.ebits(), sort.sbits()),
                 )
                 return f"({float_type})({self.expr_to_c(expr.arg(1), bound_vars)})"
 
             elif kind == z3.Z3_OP_FPA_TO_FP_UNSIGNED:
                 sort = expr.sort()
                 float_type = self.floats.get(
-                    (sort.ebits(), sort.sbits()), "/* unknown float type */"
+                    (sort.ebits(), sort.sbits()),
                 )
                 return f"({float_type})({self.expr_to_c(expr.arg(1), bound_vars)})"
             elif kind == z3.Z3_OP_FPA_TO_UBV:
@@ -406,12 +385,14 @@ class BaseCHC2C:
                 sign = self.expr_to_c(expr.arg(0), bound_vars)
                 exp = self.expr_to_c(expr.arg(1), bound_vars)
                 sgn = self.expr_to_c(expr.arg(2), bound_vars)
-                return ieee754_from_components(
-                    int(sign),
-                    int(exp),
-                    int(sgn),
-                    expr.sort().ebits(),
-                    expr.sort().sbits(),
+                return str(
+                    ieee754_from_components(
+                        int(sign),
+                        int(exp),
+                        int(sgn),
+                        expr.sort().ebits(),
+                        expr.sort().sbits(),
+                    )
                 )
             raise NotImplementedError(
                 f"Operator not implemented: {expr.decl()} (code: {kind})"
