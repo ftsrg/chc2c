@@ -62,8 +62,8 @@ class BaseCHC2C:
         `bound_vars` is a list of variable names corresponding to bound variables in the quantifier.
         """
 
-        def casted(e, signed=False):
-            return f"({self.get_cast(e, signed)}{self.expr_to_c(e, bound_vars)})"
+        def casted(expr, e, signed=False):
+            return f"({self.get_cast(expr, signed)}{e})"
 
         if z3.is_int_value(expr):
             return str(expr.as_long())
@@ -201,123 +201,218 @@ class BaseCHC2C:
             elif kind == z3.Z3_OP_BIT0:
                 return "0"
             elif kind == z3.Z3_OP_BNEG:
-                return f"(-{casted(expr.arg(0), signed=True)})"
+                return f"(-{casted(expr, self.expr_to_c(expr.arg(0), bound_vars), signed=True)})"
             elif kind == z3.Z3_OP_BADD:
-                return "(" + " + ".join(casted(arg) for arg in expr.children()) + ")"
+                return (
+                    "(" + " + ".join(casted(expr, arg) for arg in expr.children()) + ")"
+                )
             elif kind == z3.Z3_OP_BSUB:
-                return "(" + " - ".join(casted(arg) for arg in expr.children()) + ")"
+                return (
+                    "(" + " - ".join(casted(expr, arg) for arg in expr.children()) + ")"
+                )
             elif kind == z3.Z3_OP_BMUL:
-                return "(" + " * ".join(casted(arg) for arg in expr.children()) + ")"
+                return (
+                    "(" + " * ".join(casted(expr, arg) for arg in expr.children()) + ")"
+                )
             elif kind in {z3.Z3_OP_BSDIV, z3.Z3_OP_BSDIV_I}:
-                return f"({casted(expr.arg(0), True)} / {casted(expr.arg(1), True)})"
+                return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), True)} / {casted(expr, self.expr_to_c(expr.arg(1), bound_vars), True)})"
             elif kind in {z3.Z3_OP_BUDIV, z3.Z3_OP_BUDIV_I}:
-                return f"({casted(expr.arg(0), False)} / {casted(expr.arg(1), False)})"
+                return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), False)} / {casted(expr, self.expr_to_c(expr.arg(1), bound_vars), False)})"
             elif kind in {z3.Z3_OP_BSREM, z3.Z3_OP_BSREM_I}:
-                return f"({casted(expr.arg(0), True)} % {casted(expr.arg(1), True)})"
+                return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), True)} % {casted(expr, self.expr_to_c(expr.arg(1), bound_vars), True)})"
             elif kind in {z3.Z3_OP_BUREM, z3.Z3_OP_BUREM_I}:
-                return f"({casted(expr.arg(0), False)} % {casted(expr.arg(1), False)})"
+                return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), False)} % {casted(expr, self.expr_to_c(expr.arg(1), bound_vars), False)})"
             elif kind in {z3.Z3_OP_BSMOD, z3.Z3_OP_BSMOD_I}:
-                a = casted(expr.arg(0), True)
-                b = casted(expr.arg(1), True)
+                a = casted(expr, self.expr_to_c(expr.arg(0), bound_vars), True)
+                b = casted(expr, self.expr_to_c(expr.arg(1), bound_vars), True)
                 return f"/* smod */ (({a} % {b} + {b}) % {b})"
             elif kind == z3.Z3_OP_BAND:
-                return "(" + " & ".join(casted(arg) for arg in expr.children()) + ")"
+                return (
+                    "(" + " & ".join(casted(expr, arg) for arg in expr.children()) + ")"
+                )
             elif kind == z3.Z3_OP_BOR:
-                return "(" + " | ".join(casted(arg) for arg in expr.children()) + ")"
+                return (
+                    "(" + " | ".join(casted(expr, arg) for arg in expr.children()) + ")"
+                )
             elif kind == z3.Z3_OP_BXOR:
-                return "(" + " ^ ".join(casted(arg) for arg in expr.children()) + ")"
+                return (
+                    "(" + " ^ ".join(casted(expr, arg) for arg in expr.children()) + ")"
+                )
             elif kind == z3.Z3_OP_BNOT:
-                return f"(~{casted(expr.arg(0))})"
+                return f"(~{casted(expr, self.expr_to_c(expr.arg(0), bound_vars))})"
             elif kind == z3.Z3_OP_BNAND:
                 return (
-                    f"(~(" + " & ".join(casted(arg) for arg in expr.children()) + "))"
+                    f"(~("
+                    + " & ".join(casted(expr, arg) for arg in expr.children())
+                    + "))"
                 )
             elif kind == z3.Z3_OP_BNOR:
                 return (
-                    f"(~(" + " | ".join(casted(arg) for arg in expr.children()) + "))"
+                    f"(~("
+                    + " | ".join(casted(expr, arg) for arg in expr.children())
+                    + "))"
                 )
             elif kind == z3.Z3_OP_BXNOR:
                 return (
-                    f"(~(" + " ^ ".join(casted(arg) for arg in expr.children()) + "))"
+                    f"(~("
+                    + " ^ ".join(casted(expr, arg) for arg in expr.children())
+                    + "))"
                 )
             elif kind == z3.Z3_OP_CONCAT:
-                left = casted(expr.arg(0))
-                right = casted(expr.arg(1))
-                return f"/* concat */ ({self.get_cast(expr.arg(0).size() + expr.arg(1).size())}{left} << {expr.arg(1).size()}) | ({right})"
+                left = casted(expr, self.expr_to_c(expr.arg(0), bound_vars))
+                right = casted(expr, self.expr_to_c(expr.arg(1), bound_vars))
+                return f"/* concat */ ({self.get_cast(self.expr_to_c(expr.arg(0), bound_vars).size() + self.expr_to_c(expr.arg(1), bound_vars).size())}{left} << {self.expr_to_c(expr.arg(1), bound_vars).size()}) | ({right})"
             elif kind == z3.Z3_OP_SIGN_EXT:
-                return f"({casted(expr.arg(0), True)})"
+                return (
+                    f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), True)})"
+                )
             elif kind == z3.Z3_OP_ZERO_EXT:
-                return f"({casted(expr.arg(0), False)})"
+                return (
+                    f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), False)})"
+                )
             elif kind == z3.Z3_OP_EXTRACT:
                 high, low = expr.params()
-                val = casted(expr.arg(0))
+                val = casted(expr, self.expr_to_c(expr.arg(0), bound_vars))
                 mask = (1 << (high - low + 1)) - 1
                 return f"(({val} >> {low}) & {mask})"
             elif kind == z3.Z3_OP_BCOMP:
-                return f"({casted(expr.arg(0))} == {casted(expr.arg(1))})"
+                return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars))} == {casted(expr, self.expr_to_c(expr.arg(1), bound_vars))})"
             elif kind == z3.Z3_OP_BSHL:
-                return f"({casted(expr.arg(0))} << {casted(expr.arg(1))})"
+                return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars))} << {casted(expr, self.expr_to_c(expr.arg(1), bound_vars))})"
             elif kind == z3.Z3_OP_BLSHR:
-                return f"({casted(expr.arg(0), False)} >> {casted(expr.arg(1), False)})"
+                return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), False)} >> {casted(expr, self.expr_to_c(expr.arg(1), bound_vars), False)})"
             elif kind == z3.Z3_OP_BASHR:
-                return f"({casted(expr.arg(0), True)} >> {casted(expr.arg(1), False)})"
+                return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), True)} >> {casted(expr, self.expr_to_c(expr.arg(1), bound_vars), False)})"
             elif kind == z3.Z3_OP_ROTATE_LEFT:
-                val = casted(expr.arg(0))
-                amt = casted(expr.arg(1))
-                size = expr.arg(0).size()
+                val = casted(expr, self.expr_to_c(expr.arg(0), bound_vars))
+                amt = casted(expr, self.expr_to_c(expr.arg(1), bound_vars))
+                size = self.expr_to_c(expr.arg(0), bound_vars).size()
                 return f"(({val} << {amt}) | ({val} >> ({size} - {amt})))"
             elif kind == z3.Z3_OP_ROTATE_RIGHT:
-                val = casted(expr.arg(0))
-                amt = casted(expr.arg(1))
-                size = expr.arg(0).size()
+                val = casted(expr, self.expr_to_c(expr.arg(0), bound_vars))
+                amt = casted(expr, self.expr_to_c(expr.arg(1), bound_vars))
+                size = self.expr_to_c(expr.arg(0), bound_vars).size()
                 return f"(({val} >> {amt}) | ({val} << ({size} - {amt})))"
             elif kind == z3.Z3_OP_CARRY:
-                a = casted(expr.arg(0))
-                b = casted(expr.arg(1))
-                c = casted(expr.arg(2))
+                a = casted(expr, self.expr_to_c(expr.arg(0), bound_vars))
+                b = casted(expr, self.expr_to_c(expr.arg(1), bound_vars))
+                c = casted(expr, self.expr_to_c(expr.arg(2), bound_vars))
                 return f"((({a} & {b}) | (({a} | {b}) & {c})) != 0)"
             elif kind == z3.Z3_OP_XOR3:
-                a = casted(expr.arg(0))
-                b = casted(expr.arg(1))
-                c = casted(expr.arg(2))
+                a = casted(expr, self.expr_to_c(expr.arg(0), bound_vars))
+                b = casted(expr, self.expr_to_c(expr.arg(1), bound_vars))
+                c = casted(expr, self.expr_to_c(expr.arg(2), bound_vars))
                 return f"(({a} ^ {b}) ^ {c})"
             elif kind == z3.Z3_OP_ULEQ:
-                return f"({casted(expr.arg(0), False)} <= {casted(expr.arg(1), False)})"
+                return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), False)} <= {casted(expr, self.expr_to_c(expr.arg(1), bound_vars), False)})"
             elif kind == z3.Z3_OP_SLEQ:
-                return f"({casted(expr.arg(0), True)} <= {casted(expr.arg(1), True)})"
+                return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), True)} <= {casted(expr, self.expr_to_c(expr.arg(1), bound_vars), True)})"
             elif kind == z3.Z3_OP_UGEQ:
-                return f"({casted(expr.arg(0), False)} >= {casted(expr.arg(1), False)})"
+                return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), False)} >= {casted(expr, self.expr_to_c(expr.arg(1), bound_vars), False)})"
             elif kind == z3.Z3_OP_SGEQ:
-                return f"({casted(expr.arg(0), True)} >= {casted(expr.arg(1), True)})"
+                return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), True)} >= {casted(expr, self.expr_to_c(expr.arg(1), bound_vars), True)})"
             elif kind == z3.Z3_OP_ULT:
-                return f"({casted(expr.arg(0), False)} < {casted(expr.arg(1), False)})"
+                return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), False)} < {casted(expr, self.expr_to_c(expr.arg(1), bound_vars), False)})"
             elif kind == z3.Z3_OP_SLT:
-                return f"({casted(expr.arg(0), True)} < {casted(expr.arg(1), True)})"
+                return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), True)} < {casted(expr, self.expr_to_c(expr.arg(1), bound_vars), True)})"
             elif kind == z3.Z3_OP_UGT:
-                return f"({casted(expr.arg(0), False)} > {casted(expr.arg(1), False)})"
+                return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), False)} > {casted(expr, self.expr_to_c(expr.arg(1), bound_vars), False)})"
             elif kind == z3.Z3_OP_SGT:
-                return f"({casted(expr.arg(0), True)} > {casted(expr.arg(1), True)})"
+                return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), True)} > {casted(expr, self.expr_to_c(expr.arg(1), bound_vars), True)})"
 
             elif kind == z3.Z3_OP_FPA_NEG:
-                return f"-{expr.arg(0)}"
+                return f"-{self.expr_to_c(expr.arg(0), bound_vars)}"
             elif kind == z3.Z3_OP_FPA_ADD:
-                return f"({expr.arg(0)} + {expr.arg(1)})"
+                return f"({self.expr_to_c(expr.arg(0), bound_vars)} + {self.expr_to_c(expr.arg(1), bound_vars)})"
             elif kind == z3.Z3_OP_FPA_SUB:
-                return f"({expr.arg(0)} - {expr.arg(1)})"
+                return f"({self.expr_to_c(expr.arg(0), bound_vars)} - {self.expr_to_c(expr.arg(1), bound_vars)})"
             elif kind == z3.Z3_OP_FPA_MUL:
-                return f"({expr.arg(0)} * {expr.arg(1)})"
+                return f"({self.expr_to_c(expr.arg(0), bound_vars)} * {self.expr_to_c(expr.arg(1), bound_vars)})"
             elif kind == z3.Z3_OP_FPA_DIV:
-                return f"({expr.arg(0)} / {expr.arg(1)})"
+                return f"({self.expr_to_c(expr.arg(0), bound_vars)} / {self.expr_to_c(expr.arg(1), bound_vars)})"
             elif kind == z3.Z3_OP_FPA_EQ:
-                return f"({expr.arg(0)} == {expr.arg(1)})"
+                return f"({self.expr_to_c(expr.arg(0), bound_vars)} == {self.expr_to_c(expr.arg(1), bound_vars)})"
             elif kind == z3.Z3_OP_FPA_LT:
-                return f"({expr.arg(0)} < {expr.arg(1)})"
+                return f"({self.expr_to_c(expr.arg(0), bound_vars)} < {self.expr_to_c(expr.arg(1), bound_vars)})"
             elif kind == z3.Z3_OP_FPA_GT:
-                return f"({expr.arg(0)} > {expr.arg(1)})"
+                return f"({self.expr_to_c(expr.arg(0), bound_vars)} > {self.expr_to_c(expr.arg(1), bound_vars)})"
             elif kind == z3.Z3_OP_FPA_LE:
-                return f"({expr.arg(0)} <= {expr.arg(1)})"
+                return f"({self.expr_to_c(expr.arg(0), bound_vars)} <= {self.expr_to_c(expr.arg(1), bound_vars)})"
             elif kind == z3.Z3_OP_FPA_GE:
-                return f"({expr.arg(0)} >= {expr.arg(1)})"
+                return f"({self.expr_to_c(expr.arg(0), bound_vars)} >= {self.expr_to_c(expr.arg(1), bound_vars)})"
+
+            elif kind == z3.Z3_OP_FPA_NUM:
+                return str(expr.as_decimal(17))  # or as_string() if preferred
+
+            elif kind == z3.Z3_OP_FPA_PLUS_INF:
+                return "INFINITY"
+            elif kind == z3.Z3_OP_FPA_MINUS_INF:
+                return "-INFINITY"
+            elif kind == z3.Z3_OP_FPA_NAN:
+                return "NAN"
+            elif kind == z3.Z3_OP_FPA_PLUS_ZERO:
+                return "0.0"
+            elif kind == z3.Z3_OP_FPA_MINUS_ZERO:
+                return "-0.0"
+
+            elif kind == z3.Z3_OP_FPA_REM:
+                return f"fmod({self.expr_to_c(expr.arg(0), bound_vars)}, {self.expr_to_c(expr.arg(1), bound_vars)})"
+            elif kind == z3.Z3_OP_FPA_ABS:
+                return f"fabs({self.expr_to_c(expr.arg(0), bound_vars)})"
+            elif kind == z3.Z3_OP_FPA_MIN:
+                return f"fmin({self.expr_to_c(expr.arg(0), bound_vars)}, {self.expr_to_c(expr.arg(1), bound_vars)})"
+            elif kind == z3.Z3_OP_FPA_MAX:
+                return f"fmax({self.expr_to_c(expr.arg(0), bound_vars)}, {self.expr_to_c(expr.arg(1), bound_vars)})"
+            elif kind == z3.Z3_OP_FPA_SQRT:
+                return f"sqrt({self.expr_to_c(expr.arg(1), bound_vars)})"
+
+            elif kind == z3.Z3_OP_FPA_IS_NAN:
+                return f"isnan({self.expr_to_c(expr.arg(0), bound_vars)})"
+            elif kind == z3.Z3_OP_FPA_IS_INF:
+                return f"isinf({self.expr_to_c(expr.arg(0), bound_vars)})"
+            elif kind == z3.Z3_OP_FPA_IS_ZERO:
+                return f"({self.expr_to_c(expr.arg(0), bound_vars)} == 0.0)"
+            elif kind == z3.Z3_OP_FPA_IS_NORMAL:
+                return f"fpclassify({self.expr_to_c(expr.arg(0), bound_vars)}) == FP_NORMAL"
+            elif kind == z3.Z3_OP_FPA_IS_SUBNORMAL:
+                return f"fpclassify({self.expr_to_c(expr.arg(0), bound_vars)}) == FP_SUBNORMAL"
+            elif kind == z3.Z3_OP_FPA_IS_NEGATIVE:
+                return f"0.0f > {self.expr_to_c(expr.arg(0), bound_vars)}"
+            elif kind == z3.Z3_OP_FPA_IS_POSITIVE:
+                return f"0.0f < {self.expr_to_c(expr.arg(0), bound_vars)}"
+
+            elif kind == z3.Z3_OP_FPA_TO_FP:
+                sort = expr.sort()
+                float_type = self.floats.get(
+                    (sort.ebits(), sort.sbits()), "/* unknown float type */"
+                )
+                return f"({float_type})({self.expr_to_c(expr.arg(1), bound_vars)})"
+
+            elif kind == z3.Z3_OP_FPA_TO_FP_UNSIGNED:
+                sort = expr.sort()
+                float_type = self.floats.get(
+                    (sort.ebits(), sort.sbits()), "/* unknown float type */"
+                )
+                return f"({float_type})({self.expr_to_c(expr.arg(1), bound_vars)})"
+            elif kind == z3.Z3_OP_FPA_TO_UBV:
+                return casted(
+                    expr, self.expr_to_c(expr.arg(1), bound_vars), signed=False
+                )
+            elif kind == z3.Z3_OP_FPA_TO_SBV:
+                return casted(
+                    expr, self.expr_to_c(expr.arg(1), bound_vars), signed=True
+                )
+            elif kind == z3.Z3_OP_FPA_FP:
+                sign = self.expr_to_c(expr.arg(0), bound_vars)
+                exp = self.expr_to_c(expr.arg(1), bound_vars)
+                sgn = self.expr_to_c(expr.arg(2), bound_vars)
+                return ieee754_from_components(
+                    int(sign),
+                    int(exp),
+                    int(sgn),
+                    expr.sort().ebits(),
+                    expr.sort().sbits(),
+                )
             raise NotImplementedError(
                 f"Operator not implemented: {expr.decl()} (code: {kind})"
             )
@@ -326,3 +421,26 @@ class BaseCHC2C:
         if sort.kind() not in self.types_lookup:
             raise NotImplementedError(f"Sort {sort} not supported.")
         return self.types_lookup[sort.kind()](sort)
+
+
+def ieee754_from_components(
+    sign: int, exponent: int, significand: int, ebits: int, sbits: int
+) -> float:
+    import struct
+
+    total_bits = 1 + ebits + (sbits - 1)
+
+    if total_bits == 32:
+        # IEEE-754 single-precision
+        raw = ((sign & 1) << 31) | ((exponent & 0xFF) << 23) | (significand & 0x7FFFFF)
+        return struct.unpack(">f", struct.pack(">I", raw))[0]
+    elif total_bits == 64:
+        # IEEE-754 double-precision
+        raw = (
+            ((sign & 1) << 63)
+            | ((exponent & 0x7FF) << 52)
+            | (significand & 0xFFFFFFFFFFFFF)
+        )
+        return struct.unpack(">d", struct.pack(">Q", raw))[0]
+    else:
+        raise NotImplementedError("Unsupported bit width for float construction.")
