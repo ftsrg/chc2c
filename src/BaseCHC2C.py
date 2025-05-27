@@ -200,7 +200,7 @@ class BaseCHC2C:
                     + ")"
                 )
             elif kind == z3.Z3_OP_BNUM:
-                return str(expr.as_long())
+                return casted(expr, expr.as_long(), signed=True)
             elif kind == z3.Z3_OP_BIT1:
                 return "1"
             elif kind == z3.Z3_OP_BIT0:
