@@ -209,15 +209,30 @@ class BaseCHC2C:
                 return f"(-{casted(expr, self.expr_to_c(expr.arg(0), bound_vars), signed=True)})"
             elif kind == z3.Z3_OP_BADD:
                 return (
-                    "(" + " + ".join(casted(expr, arg) for arg in expr.children()) + ")"
+                    "("
+                    + " + ".join(
+                        casted(expr, self.expr_to_c(arg, bound_vars))
+                        for arg in expr.children()
+                    )
+                    + ")"
                 )
             elif kind == z3.Z3_OP_BSUB:
                 return (
-                    "(" + " - ".join(casted(expr, arg) for arg in expr.children()) + ")"
+                    "("
+                    + " - ".join(
+                        casted(expr, self.expr_to_c(arg, bound_vars))
+                        for arg in expr.children()
+                    )
+                    + ")"
                 )
             elif kind == z3.Z3_OP_BMUL:
                 return (
-                    "(" + " * ".join(casted(expr, arg) for arg in expr.children()) + ")"
+                    "("
+                    + " * ".join(
+                        casted(expr, self.expr_to_c(arg, bound_vars))
+                        for arg in expr.children()
+                    )
+                    + ")"
                 )
             elif kind in {z3.Z3_OP_BSDIV, z3.Z3_OP_BSDIV_I}:
                 return f"({casted(expr, self.expr_to_c(expr.arg(0), bound_vars), True)} / {casted(expr, self.expr_to_c(expr.arg(1), bound_vars), True)})"
@@ -233,34 +248,58 @@ class BaseCHC2C:
                 return f"/* smod */ (({a} % {b} + {b}) % {b})"
             elif kind == z3.Z3_OP_BAND:
                 return (
-                    "(" + " & ".join(casted(expr, arg) for arg in expr.children()) + ")"
+                    "("
+                    + " & ".join(
+                        casted(expr, self.expr_to_c(arg, bound_vars))
+                        for arg in expr.children()
+                    )
+                    + ")"
                 )
             elif kind == z3.Z3_OP_BOR:
                 return (
-                    "(" + " | ".join(casted(expr, arg) for arg in expr.children()) + ")"
+                    "("
+                    + " | ".join(
+                        casted(expr, self.expr_to_c(arg, bound_vars))
+                        for arg in expr.children()
+                    )
+                    + ")"
                 )
             elif kind == z3.Z3_OP_BXOR:
                 return (
-                    "(" + " ^ ".join(casted(expr, arg) for arg in expr.children()) + ")"
+                    "("
+                    + " ^ ".join(
+                        casted(expr, self.expr_to_c(arg, bound_vars))
+                        for arg in expr.children()
+                    )
+                    + ")"
                 )
             elif kind == z3.Z3_OP_BNOT:
                 return f"(~{casted(expr, self.expr_to_c(expr.arg(0), bound_vars))})"
             elif kind == z3.Z3_OP_BNAND:
                 return (
                     f"(~("
-                    + " & ".join(casted(expr, arg) for arg in expr.children())
+                    + " & ".join(
+                        casted(expr, self.expr_to_c(arg, bound_vars))
+                        for arg in expr.children()
+                    )
                     + "))"
                 )
             elif kind == z3.Z3_OP_BNOR:
                 return (
                     f"(~("
-                    + " | ".join(casted(expr, arg) for arg in expr.children())
+                    + " | ".join(
+                        casted(expr, self.expr_to_c(arg, bound_vars))
+                        for arg in expr.children()
+                    )
                     + "))"
                 )
             elif kind == z3.Z3_OP_BXNOR:
                 return (
                     f"(~("
-                    + " ^ ".join(casted(expr, arg) for arg in expr.children())
+                    + " ^ ".join(
+                        casted(expr, self.expr_to_c(arg, bound_vars))
+                        for arg in expr.children()
+                    )
                     + "))"
                 )
             elif kind == z3.Z3_OP_CONCAT:
